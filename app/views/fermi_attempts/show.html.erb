@@ -1,0 +1,155 @@
+<div class="mb-4 flex gap-4">
+  <a href="<%= fermi_question_path(@attempt.fermi_question) %>" class="text-indigo-600 text-sm hover:underline">&larr; 問題に戻る</a>
+  <a href="<%= fermi_attempts_path %>" class="text-indigo-600 text-sm hover:underline">履歴一覧</a>
+</div>
+
+<%# Question info %>
+<div class="bg-white rounded-xl shadow-sm border p-6 mb-6">
+  <h2 class="text-lg font-bold text-gray-900 mb-2"><%= @attempt.fermi_question.title %></h2>
+  <div class="bg-gray-50 rounded-lg p-3 text-sm text-gray-700">
+    <%= @attempt.fermi_question.prompt_text %>
+  </div>
+</div>
+
+<% if @attempt.evaluating? %>
+  <%# Evaluating - poll for completion %>
+  <div id="evaluating-status" class="bg-indigo-50 border border-indigo-200 rounded-xl p-8 mb-6 text-center"
+       data-poll-url="<%= status_fermi_attempt_path(@attempt) %>">
+    <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-300 border-t-indigo-600 mb-4"></div>
+    <h3 class="font-bold text-indigo-800 text-lg mb-2">AI採点中...</h3>
+    <p class="text-indigo-600 text-sm">回答を分析しています。しばらくお待ちください。</p>
+    <p class="text-indigo-400 text-xs mt-2">通常10〜20秒で完了します</p>
+  </div>
+
+  <script>
+    (function() {
+      const el = document.getElementById("evaluating-status");
+      if (!el) return;
+      const url = el.dataset.pollUrl;
+      const poll = setInterval(function() {
+        fetch(url, { headers: { "Accept": "application/json" } })
+          .then(r => r.json())
+          .then(data => {
+            if (data.status !== "evaluating") {
+              clearInterval(poll);
+              window.location.reload();
+            }
+          })
+          .catch(() => {});
+      }, 3000);
+      setTimeout(() => clearInterval(poll), 120000);
+    })();
+  </script>
+
+<% elsif @attempt.evaluated? %>
+  <%# Score overview %>
+  <div class="bg-white rounded-xl shadow-sm border p-6 mb-6">
+    <h3 class="text-lg font-bold text-gray-900 mb-4">採点結果</h3>
+
+    <div class="text-center mb-6">
+      <p class="text-4xl md:text-5xl font-bold text-indigo-600"><%= @attempt.overall_score %></p>
+      <p class="text-sm text-gray-500">総合スコア / 100</p>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="text-center p-3 bg-gray-50 rounded-lg">
+        <p class="text-2xl font-bold text-gray-800"><%= @attempt.decomposition_score %></p>
+        <p class="text-xs text-gray-500">因数分解</p>
+      </div>
+      <div class="text-center p-3 bg-gray-50 rounded-lg">
+        <p class="text-2xl font-bold text-gray-800"><%= @attempt.assumptions_score %></p>
+        <p class="text-xs text-gray-500">前提設定</p>
+      </div>
+      <div class="text-center p-3 bg-gray-50 rounded-lg">
+        <p class="text-2xl font-bold text-gray-800"><%= @attempt.numeracy_score %></p>
+        <p class="text-xs text-gray-500">桁感</p>
+      </div>
+      <div class="text-center p-3 bg-gray-50 rounded-lg">
+        <p class="text-2xl font-bold text-gray-800"><%= @attempt.communication_score %></p>
+        <p class="text-xs text-gray-500">伝達力</p>
+      </div>
+    </div>
+
+    <%# Feedback %>
+    <div class="space-y-4">
+      <% if @attempt.feedback_text.present? %>
+        <div>
+          <h4 class="font-semibold text-gray-800 mb-1">講評</h4>
+          <p class="text-gray-600 text-sm whitespace-pre-wrap"><%= @attempt.feedback_text %></p>
+        </div>
+      <% end %>
+
+      <% if @attempt.strengths_text.present? %>
+        <div class="bg-green-50 rounded-lg p-4">
+          <h4 class="font-semibold text-green-800 mb-2">良かった点</h4>
+          <ul class="space-y-1">
+            <% @attempt.strengths_text.split("\n").each do |s| %>
+              <li class="text-sm text-green-700">✓ <%= s %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <% if @attempt.weaknesses_text.present? %>
+        <div class="bg-orange-50 rounded-lg p-4">
+          <h4 class="font-semibold text-orange-800 mb-2">改善点</h4>
+          <ul class="space-y-1">
+            <% @attempt.weaknesses_text.split("\n").each do |s| %>
+              <li class="text-sm text-orange-700">△ <%= s %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Ideal approach %>
+  <% if @attempt.ideal_approach_summary_text.present? %>
+    <div class="bg-white rounded-xl shadow-sm border p-6 mb-6">
+      <h3 class="text-lg font-bold text-gray-900 mb-3">模範的なアプローチ</h3>
+      <p class="text-gray-700 text-sm whitespace-pre-wrap"><%= @attempt.ideal_approach_summary_text %></p>
+    </div>
+  <% end %>
+
+  <%# Next action %>
+  <% if @attempt.next_action_text.present? %>
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
+      <h3 class="font-bold text-blue-800 mb-2">次のステップ</h3>
+      <p class="text-blue-700 text-sm"><%= @attempt.next_action_text %></p>
+    </div>
+  <% end %>
+<% else %>
+  <%# Failed evaluation (submitted status) %>
+  <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-6">
+    <h3 class="font-bold text-yellow-800 mb-2">採点未完了</h3>
+    <p class="text-yellow-700 text-sm mb-4">回答は保存されていますが、採点に失敗しました。</p>
+    <%= button_to "再採点する", retry_evaluation_fermi_attempt_path(@attempt), class: "bg-yellow-600 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 transition" %>
+  </div>
+<% end %>
+
+<%# Your answer %>
+<div class="bg-white rounded-xl shadow-sm border p-6 mb-6">
+  <h3 class="text-lg font-bold text-gray-900 mb-3">あなたの回答</h3>
+  <% if @attempt.estimated_value_text.present? %>
+    <div class="mb-3">
+      <span class="text-sm text-gray-500">推定値:</span>
+      <span class="font-semibold text-gray-800"><%= @attempt.estimated_value_text %></span>
+    </div>
+  <% end %>
+  <div>
+    <span class="text-sm text-gray-500">思考プロセス:</span>
+    <div class="mt-1 bg-gray-50 rounded-lg p-4 text-sm text-gray-700 whitespace-pre-wrap font-mono"><%= @attempt.reasoning_text %></div>
+  </div>
+</div>
+
+<%# Next question %>
+<div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+  <% if @attempt.recommended_fermi_question %>
+    <a href="<%= new_fermi_question_fermi_attempt_path(@attempt.recommended_fermi_question) %>" class="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-lg text-center font-semibold hover:bg-indigo-700 transition">
+      次のおすすめ問題を解く
+    </a>
+  <% end %>
+  <a href="<%= fermi_questions_path %>" class="flex-1 border border-indigo-600 text-indigo-600 px-6 py-3 rounded-lg text-center font-semibold hover:bg-indigo-50 transition">
+    問題一覧に戻る
+  </a>
+</div>

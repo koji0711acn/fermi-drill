@@ -1,0 +1,53 @@
+<div class="mb-4">
+  <a href="<%= fermi_questions_path %>" class="text-indigo-600 text-sm hover:underline">&larr; 問題一覧に戻る</a>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border p-6 mb-6">
+  <div class="flex items-start justify-between mb-4">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900"><%= @question.title %></h1>
+      <div class="flex gap-2 mt-2">
+        <span class="text-xs px-2 py-0.5 rounded-full
+          <%= case @question.difficulty
+              when 'Easy' then 'bg-green-100 text-green-700'
+              when 'Medium' then 'bg-yellow-100 text-yellow-700'
+              when 'Hard' then 'bg-red-100 text-red-700'
+              end %>">
+          <%= @question.difficulty %>
+        </span>
+        <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600"><%= @question.category %></span>
+        <% if @question.estimated_minutes %>
+          <span class="text-xs text-gray-400">想定 <%= @question.estimated_minutes %>分</span>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-gray-50 rounded-lg p-4 mb-6">
+    <p class="text-gray-800 whitespace-pre-wrap"><%= @question.prompt_text %></p>
+  </div>
+
+  <a href="<%= new_fermi_question_fermi_attempt_path(@question) %>" class="inline-block bg-indigo-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-indigo-700 transition">
+    この問題を解く
+  </a>
+</div>
+
+<% if @user_attempts.any? %>
+  <div class="bg-white rounded-xl shadow-sm border p-6">
+    <h3 class="font-bold text-gray-900 mb-3">あなたの回答履歴</h3>
+    <div class="space-y-2">
+      <% @user_attempts.each do |attempt| %>
+        <a href="<%= fermi_attempt_path(attempt) %>" class="block p-3 rounded-lg hover:bg-gray-50 border border-gray-100">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-600"><%= attempt.created_at.strftime("%Y/%m/%d %H:%M") %></span>
+            <% if attempt.evaluated? %>
+              <span class="font-bold text-indigo-600"><%= attempt.overall_score %>点</span>
+            <% else %>
+              <span class="text-yellow-600 text-sm">未採点</span>
+            <% end %>
+          </div>
+        </a>
+      <% end %>
+    </div>
+  </div>
+<% end %>

@@ -1,0 +1,118 @@
+<div class="mb-4">
+  <a href="<%= dashboard_path %>" class="text-indigo-600 text-sm hover:underline">&larr; ダッシュボードに戻る</a>
+</div>
+
+<h1 class="text-2xl font-bold text-gray-900 mb-2">苦手集中ドリル</h1>
+<p class="text-gray-500 text-sm mb-8">過去の採点結果から弱いポイントを分析し、改善に最適な問題をおすすめします。</p>
+
+<% if @analysis %>
+  <%# Skill weakness analysis %>
+  <div class="bg-white rounded-xl shadow-sm border p-4 md:p-6 mb-6">
+    <h3 class="font-bold text-gray-900 mb-4">スキル別分析（直近10問）</h3>
+    <div class="space-y-3">
+      <% @analysis[:skills].each_with_index do |skill, i| %>
+        <div class="flex items-center gap-2 md:gap-3">
+          <span class="w-16 md:w-20 text-xs md:text-sm font-medium text-gray-700 shrink-0"><%= skill[:name] %></span>
+          <div class="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-500
+              <%= if skill[:average] < 50
+                    'bg-red-500'
+                  elsif skill[:average] < 70
+                    'bg-yellow-500'
+                  else
+                    'bg-green-500'
+                  end %>"
+              style="width: <%= [skill[:average], 100].min %>%">
+            </div>
+          </div>
+          <span class="w-12 text-sm font-bold text-right
+            <%= if skill[:average] < 50
+                  'text-red-600'
+                elsif skill[:average] < 70
+                  'text-yellow-600'
+                else
+                  'text-green-600'
+                end %>">
+            <%= skill[:average] %>
+          </span>
+          <% if i == 0 %>
+            <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">要改善</span>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Weak categories %>
+  <% if @analysis[:weak_categories].any? %>
+    <div class="bg-orange-50 border border-orange-200 rounded-xl p-6 mb-6">
+      <h3 class="font-bold text-orange-800 mb-3">スコアが低いカテゴリ</h3>
+      <div class="space-y-2">
+        <% @analysis[:weak_categories].each do |cat| %>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-orange-700"><%= cat[:category] %></span>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-bold text-orange-800"><%= cat[:average] %>点</span>
+              <span class="text-xs text-orange-500">(<%= cat[:count] %>問)</span>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <%# Improvement tips %>
+  <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
+    <h3 class="font-bold text-blue-800 mb-2">改善アドバイス</h3>
+    <% case @analysis[:weakest_skill][:key] %>
+    <% when "decomposition" %>
+      <p class="text-blue-700 text-sm">因数分解力を鍛えるには、問題を見たらまず「どう掛け算の形に分解できるか」を3パターン考える練習が有効です。MECE（漏れなくダブりなく）を意識しましょう。</p>
+    <% when "assumptions" %>
+      <p class="text-blue-700 text-sm">前提設定力を鍛えるには、各前提を置いた後に「これは高すぎないか？低すぎないか？」と1段階検証する習慣をつけましょう。身近な数値との比較も有効です。</p>
+    <% when "numeracy" %>
+      <p class="text-blue-700 text-sm">桁感を鍛えるには、日常的に「これは何桁の数字か」を意識する癖をつけましょう。計算途中で概数化し、桁を間違えていないかチェックする習慣が重要です。</p>
+    <% when "communication" %>
+      <p class="text-blue-700 text-sm">伝達力を鍛えるには、まず結論（推定値）を明示し、次に分解構造、最後に各前提と計算の順で書く練習をしましょう。読み手が迷わない構造化が大事です。</p>
+    <% end %>
+  </div>
+<% else %>
+  <div class="bg-gray-50 border border-gray-200 rounded-xl p-8 mb-6 text-center">
+    <p class="text-gray-500 mb-2">分析するには最低3問の採点結果が必要です。</p>
+    <p class="text-gray-400 text-sm">まずは問題を解いてみましょう！</p>
+  </div>
+<% end %>
+
+<%# Recommended questions %>
+<div class="bg-white rounded-xl shadow-sm border p-4 md:p-6">
+  <h3 class="font-bold text-gray-900 mb-4">おすすめ問題</h3>
+  <% if @questions.any? %>
+    <div class="space-y-3">
+      <% @questions.each_with_index do |question, i| %>
+        <a href="<%= new_fermi_question_fermi_attempt_path(question) %>" class="block p-3 md:p-4 rounded-lg border hover:border-indigo-300 transition">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full shrink-0">#<%= i + 1 %></span>
+                <h4 class="font-semibold text-gray-800 text-sm md:text-base truncate"><%= question.title %></h4>
+              </div>
+              <div class="flex gap-2">
+                <span class="text-xs px-2 py-0.5 rounded-full
+                  <%= case question.difficulty
+                      when 'Easy' then 'bg-green-100 text-green-700'
+                      when 'Medium' then 'bg-yellow-100 text-yellow-700'
+                      when 'Hard' then 'bg-red-100 text-red-700'
+                      end %>">
+                  <%= question.difficulty %>
+                </span>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600"><%= question.category %></span>
+              </div>
+            </div>
+            <span class="bg-indigo-600 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 shrink-0">解く</span>
+          </div>
+        </a>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="text-gray-400 text-center py-4">全問回答済みです！</p>
+  <% end %>
+</div>
